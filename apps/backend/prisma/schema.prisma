@@ -1,0 +1,94 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PatientStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum DoctorStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum CalendarSlotStatus {
+  AVAILABLE
+  BOOKED
+  BLOCKED
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+}
+
+model Patient {
+  id          String        @id @default(cuid())
+  firstName   String
+  lastName    String
+  email       String        @unique
+  phone       String?
+  dateOfBirth DateTime
+  status      PatientStatus @default(ACTIVE)
+  appointments Appointment[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([email])
+}
+
+model Doctor {
+  id          String         @id @default(cuid())
+  firstName   String
+  lastName    String
+  specialty   String
+  email       String         @unique
+  phone       String?
+  status      DoctorStatus   @default(ACTIVE)
+  calendarSlots CalendarSlot[]
+  appointments Appointment[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([specialty])
+}
+
+model CalendarSlot {
+  id         String           @id @default(cuid())
+  doctorId   String
+  doctor     Doctor           @relation(fields: [doctorId], references: [id])
+  startsAt   DateTime
+  endsAt     DateTime
+  status     CalendarSlotStatus @default(AVAILABLE)
+  appointment Appointment?
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  @@unique([doctorId, startsAt])
+  @@index([doctorId, startsAt])
+}
+
+model Appointment {
+  id            String            @id @default(cuid())
+  patientId     String
+  doctorId      String
+  calendarSlotId String?          @unique
+  startsAt      DateTime
+  endsAt        DateTime
+  status        AppointmentStatus @default(SCHEDULED)
+  patient       Patient           @relation(fields: [patientId], references: [id])
+  doctor        Doctor            @relation(fields: [doctorId], references: [id])
+  calendarSlot  CalendarSlot?     @relation(fields: [calendarSlotId], references: [id])
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@index([doctorId, startsAt])
+  @@index([patientId])
+}
